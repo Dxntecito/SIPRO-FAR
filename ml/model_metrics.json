@@ -1,0 +1,89 @@
+{
+  "validacion_dataset": {
+    "filas": 49500,
+    "columnas": 30,
+    "nulos_totales": 0,
+    "duplicados_exactos": 0,
+    "escenarios": 55,
+    "medicamentos": 15,
+    "departamentos": 5,
+    "anios": [
+      2016,
+      2025
+    ],
+    "target_min": 50.0,
+    "target_max": 21590.0,
+    "target_mean": 1495.4,
+    "negativos_en_consumo_o_target": 0
+  },
+  "split": {
+    "metodo": "GroupShuffleSplit por escenario_id (80/20, sin fuga de datos)",
+    "train_filas": 39600,
+    "test_filas": 9900,
+    "train_escenarios": 44,
+    "test_escenarios": 11
+  },
+  "comparacion_modelos": [
+    {
+      "modelo": "Regresión Lineal (Ridge)",
+      "r2": 0.9751,
+      "mae": 139.98,
+      "rmse": 250.96,
+      "mape_pct": 14.1,
+      "tiempo_seg": 0.1
+    },
+    {
+      "modelo": "Random Forest",
+      "r2": 0.9786,
+      "mae": 114.83,
+      "rmse": 232.93,
+      "mape_pct": 7.42,
+      "tiempo_seg": 10.1
+    },
+    {
+      "modelo": "HistGradientBoosting",
+      "r2": 0.978,
+      "mae": 117.8,
+      "rmse": 236.05,
+      "mape_pct": 8.22,
+      "tiempo_seg": 4.47
+    }
+  ],
+  "modelo_ganador": "Random Forest",
+  "cumple_kpi_peti": {
+    "meta_r2": 0.9,
+    "meta_mape_pct": 12.0,
+    "cumple": true
+  },
+  "features": {
+    "categoricas": [
+      "medicamento_id",
+      "departamento"
+    ],
+    "numericas": [
+      "costo_unitario",
+      "base_mensual",
+      "sensibilidad_dengue",
+      "sensibilidad_clima",
+      "mes",
+      "mes_sin",
+      "mes_cos",
+      "pedido_departamento",
+      "consumo_mes_actual",
+      "lag_1",
+      "lag_2",
+      "lag_3",
+      "lag_12",
+      "media_movil_3",
+      "media_movil_12",
+      "desviacion_movil_12",
+      "nivel_dengue",
+      "evento_nino",
+      "lluvia_mm",
+      "desembalse_almanzor",
+      "pronostico_dengue_mes_objetivo",
+      "pronostico_nino_mes_objetivo"
+    ],
+    "target": "demanda_mes_anio_siguiente"
+  }
+}
