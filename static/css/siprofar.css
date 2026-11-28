@@ -1,0 +1,55 @@
+/* ==========================================================================
+   SIPRO-FAR HEYSEN — Hoja de Estilos Institucional (Bordes Rectos)
+   Hospital II-1 Luis Enrique Heysen Incháustegui · EsSalud Lambayeque
+   ========================================================================== */
+
+* {
+  border-radius: 2px !important;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar sobrio institucional */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Controles range limpios */
+input[type="range"] {
+  accent-color: #0B3954;
+  cursor: pointer;
+}
+
+/* Estilos de impresión para Requerimiento Oficial CEABE */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-order,
+  #printable-order * {
+    visibility: visible;
+  }
+  #printable-order {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIPRO-FAR | Hospital II-1 Luis Enrique Heysen</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/siprofar.css') }}">
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col" data-user-rol="{{ user.rol }}">
+
+  {% set is_farmacia = user.rol in ['FARMACEUTICO', 'DIGITADOR'] %}
+  {% set is_planeamiento = user.rol == 'PLANEAMIENTO' %}
+  {% set is_direccion = user.rol == 'DIRECCION' %}
+
+  <!-- HEADER LIMPIO INSTITUCIONAL -->
+  <header class="bg-[#0B3954] text-white border-b-4 border-[#0F766E] sticky top-0 z-40 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-[#0F766E] w-10 h-10 flex items-center justify-center border border-teal-400/40">
+          <i class="fa-solid fa-pills text-lg text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold tracking-wide uppercase">SIPRO-FAR · Gestión Farmacéutica</h1>
+          <p class="text-[11px] text-slate-300">Hospital II-1 Luis Enrique Heysen Incháustegui · EsSalud Lambayeque</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 text-xs">
+        <a href="/" class="bg-white/10 hover:bg-white/20 px-3 py-1.5 border border-white/25 font-semibold">
+          <i class="fa-solid fa-globe mr-1"></i> Portal Asegurados
+        </a>
+        <div class="hidden md:block text-right border-l border-white/20 pl-3">
+          <div class="font-bold text-white leading-tight">{{ user.nombre }}</div>
+          <div class="text-[10px] text-teal-300 uppercase font-semibold">
+            {% if is_farmacia %}Perfil: Servicio de Farmacia (Edición){% elif is_planeamiento %}Perfil: Planeamiento y Calidad (Analítico){% else %}Perfil: Dirección Ejecutiva{% endif %}
+          </div>
+        </div>
+        <a href="/logout" class="bg-rose-800 hover:bg-rose-700 px-3 py-1.5 border border-rose-500 font-semibold">
+          <i class="fa-solid fa-right-from-bracket mr-1"></i> Salir
+        </a>
+      </div>
+    </div>
+
+    <!-- NAVEGACIÓN DIFERENCIADA POR ROL -->
+    <nav class="bg-[#072638] border-t border-white/10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 flex overflow-x-auto text-xs font-bold uppercase tracking-wider">
+        {% if is_farmacia %}
+          <button onclick="switchTab('farmacia')" id="btn-farmacia" class="tab-btn px-4 py-3 border-b-2 border-teal-400 text-teal-300 whitespace-nowrap">
+            <i class="fa-solid fa-boxes-stacked mr-1.5"></i> Inventario y Alertas
+          </button>
+          <button onclick="switchTab('simulador')" id="btn-simulador" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">
+            <i class="fa-solid fa-chart-area mr-1.5"></i> Predicción 2026–2030
+          </button>
+          <button onclick="switchTab('control')" id="btn-control" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">
+            <i class="fa-solid fa-chart-line mr-1.5"></i> Control 3-Sigma
+          </button>
+          <button onclick="switchTab('orden')" id="btn-orden" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">
+            <i class="fa-solid fa-file-invoice mr-1.5"></i> Requerimiento CEABE
+          </button>
+        {% elif is_planeamiento %}
+          <button onclick="switchTab('control')" id="btn-control" class="tab-btn px-4 py-3 border-b-2 border-teal-400 text-teal-300 whitespace-nowrap">
+            <i class="fa-solid fa-chart-line mr-1.5"></i> Control 3-Sigma
+          </button>
+          <button onclick="switchTab('simulador')" id="btn-simulador" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">
+            <i class="fa-solid fa-chart-area mr-1.5"></i> Predicción 2026–2030
+          </button>
+          <button onclick="switchTab('conciliacion')" id="btn-conciliacion" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">
+            <i class="fa-solid fa-table-columns mr-1.5"></i> Pedidos vs. Demanda
+          </button>
+          <button onclick="switchTab('sesgo')" id="btn-sesgo" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">
+            <i class="fa-solid fa-hospital mr-1.5"></i> Sesgo por Servicio
+          </button>
+          <button onclick="switchTab('farmacia')" id="btn-farmacia" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">
+            <i class="fa-solid fa-eye mr-1.5"></i> Consulta Stock y Reportes
+          </button>
+        {% else %}
+          <button onclick="switchTab('control')" id="btn-control" class="tab-btn px-4 py-3 border-b-2 border-teal-400 text-teal-300 whitespace-nowrap">
+            <i class="fa-solid fa-gauge-high mr-1.5"></i> Resumen Ejecutivo
+          </button>
+          <button onclick="switchTab('simulador')" id="btn-simulador" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">
+            <i class="fa-solid fa-chart-area mr-1.5"></i> Predicción 2026–2030
+          </button>
+          <button onclick="switchTab('conciliacion')" id="btn-conciliacion" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">
+            <i class="fa-solid fa-table-columns mr-1.5"></i> Brecha Presupuestal
+          </button>
+          <button onclick="switchTab('orden')" id="btn-orden" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">
+            <i class="fa-solid fa-file-signature mr-1.5"></i> Aprobar Requerimiento
+          </button>
+          <button onclick="switchTab('farmacia')" id="btn-farmacia" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-300 hover:text-white whitespace-nowrap">
+            <i class="fa-solid fa-eye mr-1.5"></i> Estado de Stock
+          </button>
+        {% endif %}
+      </div>
+    </nav>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full">
+
+    <!-- ========================================================== -->
+    <!-- VISTA 1: CONTROL 3-SIGMA & INDICADORES                     -->
+    <!-- ========================================================== -->
+    <section id="tab-control" class="tab-pane {% if is_farmacia %}hidden{% endif %} space-y-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white border border-slate-300 p-4 border-t-4 border-t-emerald-700">
+          <div class="text-[11px] font-bold uppercase text-slate-500">Disponibilidad del Petitorio</div>
+          <div class="text-2xl font-bold font-mono text-slate-900 mt-1" id="kpi-disp">--%</div>
+          <div class="text-xs text-slate-500 mt-1" id="kpi-lotes-sub">Meta institucional: ≥ 95%</div>
+        </div>
+        <div class="bg-white border border-slate-300 p-4 border-t-4 border-t-rose-700">
+          <div class="text-[11px] font-bold uppercase text-slate-500">Subestimación en Pedidos</div>
+          <div class="text-2xl font-bold font-mono text-rose-700 mt-1" id="kpi-subest">--%</div>
+          <div class="text-xs text-slate-500 mt-1">Diferencia vs. demanda real</div>
+        </div>
+        <div class="bg-white border border-slate-300 p-4 border-t-4 border-t-amber-600">
+          <div class="text-[11px] font-bold uppercase text-slate-500">Alertas Activas</div>
+          <div class="text-2xl font-bold font-mono text-slate-900 mt-1" id="kpi-alertas">--</div>
+          <div class="text-xs text-slate-500 mt-1" id="kpi-busq-sub">Consultas sin stock (7d): --</div>
+        </div>
+        <div class="bg-white border border-slate-300 p-4 border-t-4 border-t-[#0B3954]">
+          <div class="text-[11px] font-bold uppercase text-slate-500">Confiabilidad Predictiva</div>
+          <div class="text-2xl font-bold font-mono text-[#0B3954] mt-1" id="kpi-r2">--%</div>
+          <div class="text-xs text-slate-500 mt-1" id="kpi-mae">Error promedio: --%</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white border border-slate-300 p-5">
+          <div class="flex flex-wrap justify-between items-center gap-3 pb-3 mb-4 border-b border-slate-200">
+            <div>
+              <h2 class="text-sm font-bold uppercase text-slate-900">Control Estadístico de Consumo (Límites 3-Sigma)</h2>
+              <p class="text-xs text-slate-500">Monitoreo histórico mensual para detectar consumos anómalos</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <select id="sel-med" onchange="loadShewhart()" class="text-xs px-2.5 py-1.5 border border-slate-400 bg-slate-50 font-semibold">
+                {% for m in medicamentos %}
+                  <option value="{{ m.medicamento_id }}">{{ m.nombre[:30] }}</option>
+                {% endfor %}
+              </select>
+              <select id="sel-dep" onchange="loadShewhart()" class="text-xs px-2.5 py-1.5 border border-slate-400 bg-slate-50 font-semibold">
+                {% for d in departamentos %}
+                  <option value="{{ d.departamento_id }}">{{ d.nombre }}</option>
+                {% endfor %}
+              </select>
+              <select id="sel-anio" onchange="loadShewhart()" class="text-xs px-2.5 py-1.5 border border-slate-400 bg-slate-50 font-semibold">
+                {% for a in anios %}
+                  <option value="{{ a }}">{{ a }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="h-72 relative">
+            <canvas id="shewhartChart"></canvas>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3 mt-4 pt-3 border-t border-slate-200 text-center text-xs">
+            <div class="bg-rose-50 border border-rose-200 p-2">
+              <span class="block text-[10px] uppercase font-bold text-rose-800">Techo Alerta (+3σ)</span>
+              <span class="font-mono text-sm font-bold text-rose-700" id="lbl-ucl">--</span>
+            </div>
+            <div class="bg-slate-50 border border-slate-300 p-2">
+              <span class="block text-[10px] uppercase font-bold text-slate-600">Promedio Anual</span>
+              <span class="font-mono text-sm font-bold text-slate-900" id="lbl-mu">--</span>
+            </div>
+            <div class="bg-emerald-50 border border-emerald-200 p-2">
+              <span class="block text-[10px] uppercase font-bold text-emerald-800">Piso Normal (-3σ)</span>
+              <span class="font-mono text-sm font-bold text-emerald-700" id="lbl-lcl">--</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-300 p-5 flex flex-col justify-between">
+          <div>
+            <h3 class="text-sm font-bold uppercase text-slate-900 pb-2 mb-3 border-b border-slate-200">Alertas del Año Seleccionado</h3>
+            <div id="shewhart-alerts" class="space-y-2.5 text-xs"></div>
+          </div>
+          <button onclick="switchTab('simulador')" class="w-full mt-4 bg-[#0B3954] hover:bg-[#082B40] text-white text-xs font-bold uppercase py-2.5">
+            Proyectar Demanda 2026–2030 →
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================== -->
+    <!-- VISTA 2: PREDICCIÓN 2027-2030 EN VIVO (INTUITIVA)          -->
+    <!-- ========================================================== -->
+    <section id="tab-simulador" class="tab-pane hidden space-y-6">
+      <!-- Controles superiores limpios -->
+      <div class="bg-white border border-slate-300 p-5">
+        <div class="flex flex-wrap justify-between items-center gap-2 pb-3 mb-4 border-b border-slate-200">
+          <div>
+            <h2 class="text-sm font-bold uppercase text-slate-900">Proyección de Demanda Futura (<span id="lbl-anio-sim">2026</span>)</h2>
+            <p class="text-xs text-slate-500">Mueva los controles de escenario epidemiológico o climático y observe cómo cambia la curva mes a mes en vivo</p>
+          </div>
+          <span id="sim-status-badge" class="text-[11px] font-bold uppercase px-2.5 py-1 bg-teal-50 text-[#0F766E] border border-teal-300">
+            Actualización en vivo
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 text-xs">
+          <div class="md:col-span-2">
+            <label class="block font-bold uppercase text-[#0B3954] mb-1">Año a Proyectar</label>
+            <select id="sim-anio" onchange="scheduleLiveUpdate()" class="w-full px-2.5 py-2 border-2 border-[#0B3954] bg-white font-mono font-bold text-[#0B3954]">
+              <option value="2026" selected>2026</option>
+              <option value="2027">2027</option>
+              <option value="2028">2028</option>
+              <option value="2029">2029</option>
+              <option value="2030">2030</option>
+            </select>
+          </div>
+          <div class="md:col-span-5">
+            <label class="block font-bold uppercase text-slate-700 mb-1">Medicamento</label>
+            <select id="sim-med-curva" onchange="scheduleLiveUpdate(true)" class="w-full px-2.5 py-2 border border-slate-400 bg-white font-semibold">
+              {% for m in medicamentos %}
+                <option value="{{ m.medicamento_id }}">{{ m.nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="md:col-span-5">
+            <label class="block font-bold uppercase text-slate-700 mb-1">Servicio / Departamento</label>
+            <select id="sim-dep" onchange="scheduleLiveUpdate()" class="w-full px-2.5 py-2 border border-slate-400 bg-white font-semibold">
+              {% for d in departamentos %}
+                <option value="{{ d.nombre }}">{{ d.nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Sliders en vivo -->
+          <div class="md:col-span-3 bg-slate-50 border border-slate-200 p-3">
+            <div class="flex justify-between font-bold mb-1">
+              <span class="uppercase text-slate-700">Brote de Dengue</span>
+              <span id="val-dengue" class="font-mono text-rose-700">1.50x</span>
+            </div>
+            <input id="sim-dengue" type="range" min="1.0" max="2.5" step="0.05" value="1.50" oninput="onSliderChange('val-dengue', this.value, 'x')" class="w-full">
+            <div class="flex justify-between text-[10px] text-slate-400 mt-0.5"><span>Normal</span><span>Epidemia</span></div>
+          </div>
+
+          <div class="md:col-span-3 bg-slate-50 border border-slate-200 p-3">
+            <div class="flex justify-between font-bold mb-1">
+              <span class="uppercase text-slate-700">Fenómeno El Niño</span>
+              <span id="val-nino" class="font-mono text-amber-700">1.20x</span>
+            </div>
+            <input id="sim-nino" type="range" min="1.0" max="1.8" step="0.05" value="1.20" oninput="onSliderChange('val-nino', this.value, 'x')" class="w-full">
+            <div class="flex justify-between text-[10px] text-slate-400 mt-0.5"><span>Neutro</span><span>Intenso</span></div>
+          </div>
+
+          <div class="md:col-span-3 bg-slate-50 border border-slate-200 p-3">
+            <div class="flex justify-between font-bold mb-1">
+              <span class="uppercase text-slate-700">Desembalse HNAAA</span>
+              <span id="val-desemb" class="font-mono text-indigo-700">1.15x</span>
+            </div>
+            <input id="sim-desemb" type="range" min="1.0" max="1.4" step="0.05" value="1.15" oninput="onSliderChange('val-desemb', this.value, 'x')" class="w-full">
+            <div class="flex justify-between text-[10px] text-slate-400 mt-0.5"><span>Regular</span><span>Sobrecarga</span></div>
+          </div>
+
+          <div class="md:col-span-3 bg-slate-50 border border-slate-200 p-3">
+            <div class="flex justify-between font-bold mb-1">
+              <span class="uppercase text-slate-700">Lluvias Regionales</span>
+              <span id="val-lluvia" class="font-mono text-sky-700">65 mm</span>
+            </div>
+            <input id="sim-lluvia" type="range" min="0" max="180" step="5" value="65" oninput="onSliderChange('val-lluvia', this.value, ' mm', 0)" class="w-full">
+            <div class="flex justify-between text-[10px] text-slate-400 mt-0.5"><span>Seco</span><span>Inundación</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Curva Principal 12 Meses + Resumen Lateral -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-5">
+        <div class="lg:col-span-3 bg-white border border-slate-300 p-5">
+          <div class="flex flex-wrap justify-between items-center gap-2 pb-3 mb-3 border-b border-slate-200">
+            <h3 class="text-sm font-bold text-slate-900" id="lbl-curva-titulo">Curva de Demanda Proyectada — 2027</h3>
+            <span class="text-[11px] text-slate-500">Enero a Diciembre · Comparativa escenario normal vs. crisis</span>
+          </div>
+          <div class="h-80 relative">
+            <canvas id="proyeccionAnualChart"></canvas>
+          </div>
+        </div>
+
+        <div class="space-y-3 text-xs">
+          <div class="bg-white border border-slate-300 p-4 border-l-4 border-l-[#0B3954]">
+            <span class="block uppercase font-bold text-slate-500 text-[10px]">Total Anual Proyectado</span>
+            <div class="text-xl font-bold font-mono text-slate-900 mt-1" id="card-anual-u">--</div>
+            <div class="text-[11px] font-semibold mt-0.5" id="card-anual-var">--</div>
+          </div>
+          <div class="bg-white border border-slate-300 p-4 border-l-4 border-l-rose-700">
+            <span class="block uppercase font-bold text-slate-500 text-[10px]">Mes de Mayor Demanda (Pico)</span>
+            <div class="text-xl font-bold text-rose-700 mt-1" id="card-mes-pico">--</div>
+            <div class="text-[11px] font-mono text-slate-600 mt-0.5" id="card-val-pico">--</div>
+          </div>
+          <div class="bg-white border border-slate-300 p-4 border-l-4 border-l-[#0F766E]">
+            <span class="block uppercase font-bold text-slate-500 text-[10px]">Inversión Anual Estimada</span>
+            <div class="text-xl font-bold font-mono text-[#0F766E] mt-1" id="card-costo-anual">S/ --</div>
+            <div class="text-[11px] text-slate-500 mt-0.5" id="card-meses-3s">Meses sobre techo 3σ: --</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detalle Opcional de los 15 Medicamentos para un Mes -->
+      <div class="bg-white border border-slate-300 p-5">
+        <div class="flex flex-wrap justify-between items-center gap-3 pb-3 mb-3 border-b border-slate-200">
+          <div>
+            <h3 class="text-sm font-bold uppercase text-slate-900">Detalle de los 15 Medicamentos Críticos (Mes Seleccionado)</h3>
+            <p class="text-xs text-slate-500">Requerimiento sugerido descontando el stock actual disponible</p>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <label class="font-bold uppercase text-slate-700">Ver mes:</label>
+            <select id="sim-mes" onchange="runSimulacion()" class="px-2.5 py-1.5 border border-slate-400 bg-slate-50 font-semibold">
+              <option value="1">Enero</option><option value="2">Febrero</option><option value="3" selected>Marzo</option>
+              <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+              <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+              <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs border-collapse border border-slate-300">
+            <thead class="bg-[#0B3954] text-white uppercase">
+              <tr>
+                <th class="p-2 text-left border border-slate-600">Medicamento</th>
+                <th class="p-2 text-right border border-slate-600">Demanda Normal</th>
+                <th class="p-2 text-right border border-slate-600">Demanda Proyectada</th>
+                <th class="p-2 text-right border border-slate-600">Variación</th>
+                <th class="p-2 text-right border border-slate-600">Stock Actual</th>
+                <th class="p-2 text-right border border-slate-600">Sugerido Pedir</th>
+                <th class="p-2 text-right border border-slate-600">Costo (S/)</th>
+                <th class="p-2 text-center border border-slate-600">Nivel Alerta</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-simulador" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================== -->
+    <!-- VISTA 3: PEDIDOS VS DEMANDA (PLANEAMIENTO / DIRECCIÓN)     -->
+    <!-- ========================================================== -->
+    <section id="tab-conciliacion" class="tab-pane hidden space-y-5">
+      <div class="bg-white border border-slate-300 p-5">
+        <div class="flex flex-wrap justify-between items-center gap-3 pb-3 mb-4 border-b border-slate-200">
+          <div>
+            <h2 class="text-sm font-bold uppercase text-slate-900">Consolidación: Pedidos Manuales de Servicios vs. Demanda Real</h2>
+            <p class="text-xs text-slate-500">Brecha presupuestal y riesgo de desabastecimiento por medicamento</p>
+          </div>
+          <select id="sel-mes-conc" onchange="loadConciliacion()" class="text-xs px-2.5 py-1.5 border border-slate-400 bg-slate-50 font-semibold">
+            <option value="1">Enero</option><option value="2">Febrero</option><option value="3" selected>Marzo</option>
+            <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+            <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+            <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 text-xs">
+          <div class="bg-slate-50 border border-slate-300 p-3.5">
+            <span class="block uppercase font-bold text-slate-500">Pedido por Servicios</span>
+            <span class="font-mono text-lg font-bold text-slate-900" id="conc-tot-depts">S/ --</span>
+          </div>
+          <div class="bg-teal-50 border border-teal-300 p-3.5">
+            <span class="block uppercase font-bold text-teal-800">Requerimiento Sugerido</span>
+            <span class="font-mono text-lg font-bold text-teal-900" id="conc-tot-ia">S/ --</span>
+          </div>
+          <div class="bg-rose-50 border border-rose-300 p-3.5">
+            <span class="block uppercase font-bold text-rose-800">Brecha Presupuestal</span>
+            <span class="font-mono text-lg font-bold text-rose-700" id="conc-tot-brecha">S/ --</span>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs border-collapse border border-slate-300">
+            <thead class="bg-[#0B3954] text-white uppercase">
+              <tr>
+                <th class="p-2.5 text-left border border-slate-600">Medicamento</th>
+                <th class="p-2.5 text-right border border-slate-600">Pedido Depts.</th>
+                <th class="p-2.5 text-right border border-slate-600">Demanda Real</th>
+                <th class="p-2.5 text-right border border-slate-600">Stock Seg.</th>
+                <th class="p-2.5 text-right border border-slate-600">Sugerido</th>
+                <th class="p-2.5 text-right border border-slate-600">Subestimación</th>
+                <th class="p-2.5 text-right border border-slate-600">Brecha (S/)</th>
+                <th class="p-2.5 text-center border border-slate-600">Riesgo</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-conciliacion" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================== -->
+    <!-- VISTA 4: SESGO POR SERVICIO                                -->
+    <!-- ========================================================== -->
+    <section id="tab-sesgo" class="tab-pane hidden">
+      <div class="bg-white border border-slate-300 p-5">
+        <h2 class="text-sm font-bold uppercase text-slate-900 pb-3 mb-4 border-b border-slate-200">Subestimación Promedio por Servicio Clínico</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="h-72 relative"><canvas id="sesgoChart"></canvas></div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs border-collapse border border-slate-300">
+              <thead class="bg-[#0B3954] text-white uppercase">
+                <tr>
+                  <th class="p-2.5 text-left border border-slate-600">Servicio / Departamento</th>
+                  <th class="p-2.5 text-right border border-slate-600">Pedido</th>
+                  <th class="p-2.5 text-right border border-slate-600">Consumo Real</th>
+                  <th class="p-2.5 text-right border border-slate-600">Subestimación</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-sesgo" class="divide-y divide-slate-200"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================== -->
+    <!-- VISTA 5: INVENTARIO, ALERTAS Y REPORTE SEMANAL (CON SUBTABS) -->
+    <!-- ========================================================== -->
+    <section id="tab-farmacia" class="tab-pane {% if not is_farmacia %}hidden{% endif %} space-y-5">
+      <div class="bg-white border border-slate-300 p-5">
+        <div class="flex flex-wrap justify-between items-center gap-3 pb-3 mb-4 border-b border-slate-200">
+          <div>
+            <h2 class="text-sm font-bold uppercase text-slate-900">
+              {% if is_farmacia %}Gestión de Inventario, Alertas y Demanda Insatisfecha{% else %}Consulta de Stock, Alertas y Reporte Semanal (Solo Lectura){% endif %}
+            </h2>
+            <p class="text-xs text-slate-500">
+              {% if is_farmacia %}Actualice existencias y atienda alertas de reposición; los cambios se reflejan de inmediato en el Portal de Asegurados.{% else %}Visibilidad consolidada para Planeamiento y Dirección sin modificar registros operativos de Farmacia.{% endif %}
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span id="crud-toast" class="hidden text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-400 px-3 py-1">Guardado</span>
+            <div class="flex border border-slate-400 text-xs font-bold uppercase">
+              <button onclick="switchFarmSub('lotes')" id="subbtn-lotes" class="sub-btn px-3 py-1.5 bg-[#0B3954] text-white">Inventario Lotes</button>
+              <button onclick="switchFarmSub('alertas')" id="subbtn-alertas" class="sub-btn px-3 py-1.5 bg-white text-slate-700 hover:bg-slate-100 border-l border-slate-400">Alertas</button>
+              <button onclick="switchFarmSub('reporte')" id="subbtn-reporte" class="sub-btn px-3 py-1.5 bg-white text-slate-700 hover:bg-slate-100 border-l border-slate-400">Más Buscados sin Stock</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-panel A: Inventario Lotes -->
+        <div id="sub-lotes" class="sub-pane overflow-x-auto max-h-[520px] overflow-y-auto">
+          <table class="w-full text-xs border-collapse border border-slate-300">
+            <thead class="bg-[#0B3954] text-white uppercase sticky top-0">
+              <tr>
+                <th class="p-2.5 text-left border border-slate-600">Lote / Medicamento</th>
+                <th class="p-2.5 text-left border border-slate-600">Servicio</th>
+                <th class="p-2.5 text-right border border-slate-600">Stock Actual</th>
+                <th class="p-2.5 text-right border border-slate-600">Stock Mín.</th>
+                <th class="p-2.5 text-center border border-slate-600">Vencimiento</th>
+                <th class="p-2.5 text-center border border-slate-600">Estado</th>
+                {% if is_farmacia %}
+                  <th class="p-2.5 text-center border border-slate-600">Acción</th>
+                {% endif %}
+              </tr>
+            </thead>
+            <tbody id="tbody-inventario" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+
+        <!-- Sub-panel B: Alertas -->
+        <div id="sub-alertas" class="sub-pane hidden overflow-x-auto">
+          <table class="w-full text-xs border-collapse border border-slate-300">
+            <thead class="bg-slate-800 text-white uppercase">
+              <tr>
+                <th class="p-2.5 text-left border border-slate-600">Medicamento / Servicio</th>
+                <th class="p-2.5 text-center border border-slate-600">Tipo</th>
+                <th class="p-2.5 text-left border border-slate-600">Detalle</th>
+                <th class="p-2.5 text-center border border-slate-600">Estado</th>
+                {% if is_farmacia %}
+                  <th class="p-2.5 text-center border border-slate-600">Acción</th>
+                {% endif %}
+              </tr>
+            </thead>
+            <tbody id="tbody-alertas" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+
+        <!-- Sub-panel C: Reporte Semanal -->
+        <div id="sub-reporte" class="sub-pane hidden overflow-x-auto">
+          <table class="w-full text-xs border-collapse border border-slate-300">
+            <thead class="bg-slate-800 text-white uppercase">
+              <tr>
+                <th class="p-2.5 text-left border border-slate-600">Código</th>
+                <th class="p-2.5 text-left border border-slate-600">Medicamento Consultado sin Stock</th>
+                <th class="p-2.5 text-right border border-slate-600">Consultas (Últimos 7 días)</th>
+                <th class="p-2.5 text-right border border-slate-600">Última Consulta</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-reporte-sem" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================== -->
+    <!-- VISTA 6: REQUERIMIENTO OFICIAL CEABE                       -->
+    <!-- ========================================================== -->
+    <section id="tab-orden" class="tab-pane hidden">
+      <div id="printable-order" class="bg-white border border-slate-400 p-6 space-y-4">
+        <div class="flex justify-between items-start border-b-2 border-[#0B3954] pb-4">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-widest text-[#0F766E]">Seguro Social de Salud — EsSalud · Red Prestacional Lambayeque</div>
+            <h2 class="text-lg font-bold text-slate-900 mt-0.5">REQUERIMIENTO OFICIAL DE ABASTECIMIENTO FARMACOLÓGICO (CEABE)</h2>
+            <p class="text-xs text-slate-600">Hospital II-1 Luis Enrique Heysen Incháustegui · Proyección de Demanda SIPRO-FAR</p>
+          </div>
+          <div class="text-right text-xs">
+            <div class="font-mono font-bold">DOC: REQ-SF-2026-001</div>
+            <div>Fecha: {{ fecha_hoy }}</div>
+            <button onclick="window.print()" class="no-print mt-2 bg-[#0B3954] hover:bg-[#082B40] text-white font-bold uppercase px-3 py-1.5 text-[11px]">
+              <i class="fa-solid fa-print mr-1"></i> Imprimir / PDF
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs border-collapse border border-slate-400">
+            <thead class="bg-slate-800 text-white uppercase">
+              <tr>
+                <th class="p-2 text-left border border-slate-600">Código</th>
+                <th class="p-2 text-left border border-slate-600">Descripción del Fármaco</th>
+                <th class="p-2 text-center border border-slate-600">Unidad</th>
+                <th class="p-2 text-right border border-slate-600">Cantidad Sugerida</th>
+                <th class="p-2 text-right border border-slate-600">P. Unit. (S/)</th>
+                <th class="p-2 text-right border border-slate-600">Subtotal (S/)</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-orden" class="divide-y divide-slate-200"></tbody>
+            <tfoot class="bg-slate-100 font-bold">
+              <tr>
+                <td colspan="5" class="p-2.5 text-right border border-slate-400 uppercase">Total Estimado del Requerimiento (PEN)</td>
+                <td class="p-2.5 text-right font-mono text-sm border border-slate-400" id="orden-total">S/ --</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div class="grid grid-cols-3 gap-6 pt-10 text-center text-xs text-slate-700">
+          <div class="border-t border-slate-500 pt-2">Jefatura de Servicio de Farmacia<br><span class="text-[10px] text-slate-500">UPSS Farmacia</span></div>
+          <div class="border-t border-slate-500 pt-2">División de Planeamiento y Calidad<br><span class="text-[10px] text-slate-500">Validación de Demanda</span></div>
+          <div class="border-t border-slate-500 pt-2">Dirección del Hospital<br><span class="text-[10px] text-slate-500">Hospital II-1 Luis Heysen</span></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="{{ url_for('static', filename='js/panel.js') }}"></script>
+</body>
+</html>
